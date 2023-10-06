@@ -19,9 +19,15 @@ class Field:
         'A1': None, 'B1': None, 'C1': None, 'D1': None, 'E1': None, 'F1': None, 'G1': None, 'H1': None,
     }
 
+    _field_x = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
     @property
     def field(self):
         return self._field
+
+    @property
+    def field_x(self):
+        return self._field_x
 
     # Возвращает поле в читабельном виде для консоли
     def _get_console_field(self):
@@ -37,10 +43,18 @@ class Field:
             i += 1
         print('')
 
-    # Ставит фигуру на начальное положение в доске
-    def _set_figure(self, coordinates, figure):
+    # Ставит фигуру на заданное положение в доске
+    def _set_figure(self, figure, coordinates):
         if self._check_coordinates(coordinates):
             self._field[coordinates['x'] + coordinates['y']] = figure
+
+    # Создает фигуру на доске в заданной позиции
+    def _create_figure(self, figure, coordinates):
+        if self._check_coordinates(coordinates):
+            if self._field[coordinates['x'] + coordinates['y']] is None:
+                self._field[coordinates['x'] + coordinates['y']] = figure
+            else:
+                raise Exception('Нельзя создать фигуру поверх другой')
 
     # Удаляет фигуру с позиции
     def _set_none(self, coordinates):
@@ -64,34 +78,48 @@ class Field:
 # Класс описывающий правила игры
 class GameRules(Field):
 
-    # Проверяет, не перешла ли границы поля фигура
-    def _field_borders(self, coordinates):
-        if coordinates['x'] + coordinates['y'] in self._field:
-            return True
-
     # Проверяет, занято ли поле фигурой
-    def _is_field_occupied(self, figure, coordinates):
+    def _is_field_occupied(self, coordinates):
         key = coordinates['x'] + coordinates['y']
+
         if self.field[key] is not None:
-            if figure.color == self.field[key].color:
-                print('Поле занято союзной фигурой')
-                return True
-            else:
-                print('Поле занято вражеской фигурой')
-                return True
+            return True
 
     # Проверяет, есть ли вертикальном пути фигуры другие фигуры
     def _is_vertical_overstep(self, figure, coordinates):
         key = coordinates['x'] + coordinates['y']
+
         if self.field[key] is None:
             for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
                 if self.field[coordinates['x'] + str(i)] is not None:
-                    print('Вы пытаетесь перешагнуть через фигуру(ы)')
                     return True
 
     # Взятие пешкой
     def _is_capture_by_pawn(self, pawn, coordinates):
-        pass
+        def _is_capture():
+            if self._is_field_occupied(coordinates):
+                if pawn.is_white():
+                    if int(coordinates['y']) - int(pawn.coordinates['y']) == 1:
+                        return True
+                elif pawn.is_black():
+                    if int(pawn.coordinates['y']) - int(coordinates['y']) == 1:
+                        return True
+                return False
+
+        index = pawn.field_x.index(pawn.coordinates['x'])
+
+        if 0 < index < len(pawn.field_x) - 1:
+            if coordinates['x'] == pawn.field_x[index - 1] or coordinates['x'] == pawn.field_x[index + 1]:
+                if _is_capture():
+                    return True
+        elif index == 0:
+            if coordinates['x'] == pawn.field_x[index + 1]:
+                if _is_capture():
+                    return True
+        elif index == len(pawn.field_x) - 1:
+            if coordinates['x'] == pawn.field_x[index - 1]:
+                if _is_capture():
+                    return True
 
 
 # Класс правил хода для фигур
@@ -102,15 +130,22 @@ class FigureRules:
     def _pawn_rules(pawn, coordinates):
         if pawn.name == 'Pawn':
             if pawn.coordinates != coordinates:
-                if pawn.moves_count == 0:
-                    if pawn.coordinates['x'] == coordinates['x'] and 0 < int(coordinates['y']) - \
-                            int(pawn.coordinates['y']) <= 2:
-                        return True
-                else:
-                    if pawn.coordinates['x'] == coordinates['x'] and 0 < int(coordinates['y']) - \
-                            int(pawn.coordinates['y']) <= 1:
-                        return True
-        print('Ход невозможен')
+                if pawn.coordinates['x'] == coordinates['x']:
+                    if pawn.moves_count == 0:
+                        if pawn.is_white():
+                            if 0 < int(coordinates['y']) - int(pawn.coordinates['y']) <= 2:
+                                return True
+                        elif pawn.is_black():
+                            if 0 < int(pawn.coordinates['y']) - int(coordinates['y']) <= 2:
+                                return True
+                    else:
+                        if pawn.is_white():
+                            if 0 < int(coordinates['y']) - int(pawn.coordinates['y']) <= 1:
+                                return True
+                        elif pawn.is_black():
+                            if 0 < int(pawn.coordinates['y']) - int(coordinates['y']) <= 1:
+                                return True
+        return False
 
     # Проверяет, может ли ладья сделать ход
     @staticmethod
@@ -119,7 +154,7 @@ class FigureRules:
             if rook.coordinates != coordinates:
                 if rook.coordinates['x'] == coordinates['x'] or rook.coordinates['y'] == coordinates['y']:
                     return True
-        print('Ход невозможен')
+        return False
 
 
 # Класс описывающий фигуру
@@ -136,6 +171,7 @@ class Figure(FigureRules, GameRules):
                 self._coordinates = coordinates
                 self._color = color
                 self._id = color + name + coordinates['x'] + coordinates['y']
+                self._is_dead = False
         else:
             raise Exception('Ошибка при создании фигуры')
 
@@ -158,7 +194,7 @@ class Figure(FigureRules, GameRules):
     # Ставит фигуру на заданную позицию
     def _set_position(self, coordinates, figure):
         super()._set_none(self._coordinates)
-        super()._set_figure(coordinates, figure)
+        super()._set_figure(figure, coordinates)
         self._coordinates = coordinates
         self._id = self._color + self._name + coordinates['x'] + coordinates['y']
 
@@ -175,6 +211,24 @@ class Figure(FigureRules, GameRules):
             return True
         else:
             print('Неверно введён цвет фигуры')
+            return False
+
+    # Если цвет фигуры черные возвращает истину
+    def is_black(self):
+        if self.color == 'Black' or self.color == 'black':
+            return True
+        return False
+
+    # Если цвет фигуры белый возвращает истину
+    def is_white(self):
+        if self.color == 'White' or self.color == 'white':
+            return True
+        return False
+
+    # "Убивает" фигуру
+    @staticmethod
+    def _kill_figure(figure):
+        figure._is_dead = True
 
 
 # Класс Пешки
@@ -183,7 +237,7 @@ class Pawn(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
         self.__moves_count = 0
 
     @property
@@ -192,13 +246,17 @@ class Pawn(Figure):
 
     # Ставит пешку на заданную позицию, с проверками
     def move(self, coordinates):
-        if super()._check_coordinates(coordinates):
+        if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._pawn_rules(self, coordinates):
-                if super()._field_borders(coordinates):
-                    if not super()._is_field_occupied(figure=self, coordinates=coordinates):
-                        if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                            super()._set_position(coordinates, self)
-                            self.__moves_count += 1
+                if not super()._is_field_occupied(coordinates):
+                    if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
+                        super()._set_position(coordinates, self)
+                        self.__moves_count += 1
+            elif super()._is_capture_by_pawn(self, coordinates):
+                figure = super()._field[coordinates['x'] + coordinates['y']]
+                self._kill_figure(figure)
+                super()._set_position(coordinates, self)
+                self.__moves_count += 1
 
 
 # Класс Ладьи
@@ -207,13 +265,13 @@ class Rook(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
 
     # Ставим ладью на заданную позицию, с проверками
     def move(self, coordinates):
-        if super()._check_coordinates(coordinates):
+        if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._rook_rules(self, coordinates):
-                if not super()._is_field_occupied(figure=self, coordinates=coordinates):
+                if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
                         super()._set_position(coordinates, self)
 
@@ -224,7 +282,7 @@ class Knight(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
         pass
@@ -236,7 +294,7 @@ class Bishop(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
         pass
@@ -248,7 +306,7 @@ class Queen(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
         pass
@@ -260,7 +318,7 @@ class King(Figure):
 
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
-        super()._set_figure(coordinates, self)
+        super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
         pass
