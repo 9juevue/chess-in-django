@@ -85,14 +85,11 @@ class GameRules(Field):
         if self.field[key] is not None:
             return True
 
-    # Проверяет, есть ли вертикальном пути фигуры другие фигуры
+    # Проверяет, есть ли на вертикальном пути фигуры другие фигуры
     def _is_vertical_overstep(self, figure, coordinates):
-        key = coordinates['x'] + coordinates['y']
-
-        if self.field[key] is None:
-            for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
-                if self.field[coordinates['x'] + str(i)] is not None:
-                    return True
+        for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
+            if self.field[coordinates['x'] + str(i)] is not None:
+                return True
 
     # Взятие пешкой
     def _is_capture_by_pawn(self, pawn, coordinates):
@@ -120,6 +117,14 @@ class GameRules(Field):
             if coordinates['x'] == pawn.field_x[index - 1]:
                 if _is_capture():
                     return True
+
+    # Взятие фигурами кроме пешки и кона
+    def _is_capture(self, figure, coordinates):
+        figure_target = super()._field[coordinates['x'] + coordinates['y']]
+        if figure.color != figure_target.color:
+            return True
+        else:
+            return False
 
 
 # Класс правил хода для фигур
@@ -191,6 +196,10 @@ class Figure(FigureRules, GameRules):
     def coordinates(self):
         return self._coordinates
 
+    def _delete_coordinates(self):
+        if self._is_dead:
+            self._coordinates = None
+
     # Ставит фигуру на заданную позицию
     def _set_position(self, coordinates, figure):
         super()._set_none(self._coordinates)
@@ -229,6 +238,13 @@ class Figure(FigureRules, GameRules):
     @staticmethod
     def _kill_figure(figure):
         figure._is_dead = True
+        figure._delete_coordinates()
+
+
+# Класс игрока
+class Player:
+    def __init__(self, color):
+        self.__color = color
 
 
 # Класс Пешки
@@ -253,8 +269,8 @@ class Pawn(Figure):
                         super()._set_position(coordinates, self)
                         self.__moves_count += 1
             elif super()._is_capture_by_pawn(self, coordinates):
-                figure = super()._field[coordinates['x'] + coordinates['y']]
-                self._kill_figure(figure)
+                figure_target = super()._field[coordinates['x'] + coordinates['y']]
+                self._kill_figure(figure_target)
                 super()._set_position(coordinates, self)
                 self.__moves_count += 1
 
@@ -273,6 +289,11 @@ class Rook(Figure):
             if super()._rook_rules(self, coordinates):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
+                        super()._set_position(coordinates, self)
+                else:
+                    if super()._is_capture(self, coordinates):
+                        figure_target = super()._field[coordinates['x'] + coordinates['y']]
+                        self._kill_figure(figure_target)
                         super()._set_position(coordinates, self)
 
 
