@@ -236,7 +236,7 @@ class Figure(FigureRules, GameRules):
 
     # "Убивает" фигуру
     @staticmethod
-    def _kill_figure(figure):
+    def _kill_figure(figure: 'Figure'):
         figure._is_dead = True
         figure._delete_coordinates()
 
