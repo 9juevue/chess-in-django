@@ -8,6 +8,7 @@ from django.db import models
 
 # Класс игрового поля
 class Field:
+    # Шахматное поле
     _field = {
         'A8': None, 'B8': None, 'C8': None, 'D8': None, 'E8': None, 'F8': None, 'G8': None, 'H8': None,
         'A7': None, 'B7': None, 'C7': None, 'D7': None, 'E7': None, 'F7': None, 'G7': None, 'H7': None,
@@ -19,6 +20,7 @@ class Field:
         'A1': None, 'B1': None, 'C1': None, 'D1': None, 'E1': None, 'F1': None, 'G1': None, 'H1': None,
     }
 
+    # Необходим для индекса фигуры по иксам (A => 0, B => 1, ... , H => 7)
     _field_x = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
     @property
@@ -32,15 +34,28 @@ class Field:
     # Возвращает поле в читабельном виде для консоли
     def _get_console_field(self):
         i = 0
+        y = 8
+
         for key in self._field:
             obj = self._field[key]
+
             if i % 8 == 0:
                 print('')
+                print("{:<3}".format(y), end='')
+
+                y -= 1
             if obj is None:
-                print(None, end=' ')
+                print('None     ', end=' ')
             else:
-                print(obj.name, end=' ')
+                print("{:<9}".format(obj.color[0] + obj.name), end=' ')
             i += 1
+
+        print('')
+        print('   ', end='')
+
+        for i in range(0, len(self.field_x)):
+            print("{:<9}".format(self.field_x[i]), end=' ')
+
         print('')
 
     # Ставит фигуру на заданное положение в доске
@@ -85,11 +100,57 @@ class GameRules(Field):
         if self.field[key] is not None:
             return True
 
-    # Проверяет, есть ли на вертикальном пути фигуры другие фигуры
+    # Проверяет, есть ли на вертикальном пути фигуры
     def _is_vertical_overstep(self, figure, coordinates):
-        for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
-            if self.field[coordinates['x'] + str(i)] is not None:
-                return True
+        index_current = self.field_x.index(figure.coordinates['x'])
+        index_future = self.field_x.index(coordinates['x'])
+        step_y = index_future - index_current
+
+        if step_y == 0:
+            for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
+                if self.field[coordinates['x'] + str(i)] is not None:
+                    return True
+        else:
+            if step_y > 0:
+                for i in range(index_current, index_future):
+                    if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
+                        return True
+            else:
+                for i in range(index_current, index_future, -1):
+                    if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
+                        return True
+
+    # Проверяет, есть ли на диагональном пути фигуры
+    def _is_diagonal_overstep(self, figure, coordinates):
+        index = self.field_x.index(figure.coordinates['x'])
+        step_y = self.field_x.index(coordinates['x']) - index
+        if step_y > 0:
+            if coordinates['y'] > figure.coordinates['y']:
+                step = 1
+                for i in range(int(figure.coordinates['y']), int(coordinates['y']) - 1):
+                    if self.field[self.field_x[index + step] + str(i + 1)] is not None:
+                        return True
+                    step += 1
+
+            else:
+                step = 1
+                for i in range(int(figure.coordinates['y']), int(coordinates['y']) + 1, -1):
+                    if self.field[self.field_x[index + step] + str(i - 1)] is not None:
+                        return True
+                    step += 1
+        else:
+            if coordinates['y'] > figure.coordinates['y']:
+                step = 1
+                for i in range(int(figure.coordinates['y']), int(coordinates['y']) - 1):
+                    if self.field[self.field_x[index - step] + str(i + 1)] is not None:
+                        return True
+                    step += 1
+            else:
+                step = 1
+                for i in range(int(figure.coordinates['y']), int(coordinates['y']) + 1, -1):
+                    if self.field[self.field_x[index - step] + str(i - 1)] is not None:
+                        return True
+                    step += 1
 
     # Взятие пешкой
     def _is_capture_by_pawn(self, pawn, coordinates):
@@ -118,7 +179,11 @@ class GameRules(Field):
                 if _is_capture():
                     return True
 
-    # Взятие фигурами кроме пешки и кона
+    # Взятие на проходе
+    def _is_en_passant(self, pawn, coordinates):
+        pass
+
+    # Взятие фигурами кроме пешки
     def _is_capture(self, figure, coordinates):
         figure_target = super()._field[coordinates['x'] + coordinates['y']]
         if figure.color != figure_target.color:
@@ -155,11 +220,55 @@ class FigureRules:
     # Проверяет, может ли ладья сделать ход
     @staticmethod
     def _rook_rules(rook, coordinates):
-        if rook.name == 'Rook':
+        if rook.name == 'Rook' or 'Queen':
             if rook.coordinates != coordinates:
                 if rook.coordinates['x'] == coordinates['x'] or rook.coordinates['y'] == coordinates['y']:
                     return True
         return False
+
+    # Проверяет, может ли конь сделать ход
+    @staticmethod
+    def _knight_rules(knight, coordinates):
+        if knight.name == 'Knight':
+            if knight.coordinates != coordinates:
+                index = knight.field_x.index(knight.coordinates['x'])
+
+                if coordinates['x'] == knight.field_x[index + 1] or coordinates['x'] == knight.field_x[index - 1]:
+                    if int(coordinates['y']) == int(knight.coordinates['y']) + 2 or int(coordinates['y']) == int(
+                            knight.coordinates['y']) - 2:
+                        return True
+
+                if coordinates['x'] == knight.field_x[index + 2] or coordinates['x'] == knight.field_x[index - 2]:
+                    if int(coordinates['y']) == int(knight.coordinates['y']) + 1 or int(coordinates['y']) == int(
+                            knight.coordinates['y']) - 1:
+                        return True
+        return False
+
+    # Проверяет, может ли слон сделать ход
+    @staticmethod
+    def _bishop_rules(bishop, coordinates):
+        if bishop.name == 'Bishop' or 'Queen':
+            if bishop.coordinates != coordinates:
+                index = bishop.field_x.index(bishop.coordinates['x'])
+                step_x = bishop.field_x.index(coordinates['x']) - bishop.field_x.index(bishop.coordinates['x'])
+                step_y = int(coordinates['y']) - int(bishop.coordinates['y'])
+
+                if abs(step_x) == abs(step_y):
+                    if step_x > 0:
+                        if coordinates['x'] == bishop.field_x[index + step_x]:
+                            return True
+                    elif step_x < 0:
+                        if coordinates['x'] == bishop.field_x[index + step_x]:
+                            return True
+        return False
+
+    # Проверяет, может ли королева сделать ход
+    def _queen_rules(self, queen, coordinates):
+        if queen.name == 'Queen':
+            if self._rook_rules(queen, coordinates):
+                return True
+            if self._bishop_rules(queen, coordinates):
+                return True
 
 
 # Класс описывающий фигуру
@@ -204,6 +313,7 @@ class Figure(FigureRules, GameRules):
     def _set_position(self, coordinates, figure):
         super()._set_none(self._coordinates)
         super()._set_figure(figure, coordinates)
+
         self._coordinates = coordinates
         self._id = self._color + self._name + coordinates['x'] + coordinates['y']
 
@@ -214,9 +324,9 @@ class Figure(FigureRules, GameRules):
     # Проверяет цвет фигуры
     @staticmethod
     def check_figure_color(color):
-        if color == 'White' or color == 'white':
+        if color == 'White':
             return True
-        elif color == 'Black' or color == 'black':
+        elif color == 'Black':
             return True
         else:
             print('Неверно введён цвет фигуры')
@@ -224,27 +334,56 @@ class Figure(FigureRules, GameRules):
 
     # Если цвет фигуры черные возвращает истину
     def is_black(self):
-        if self.color == 'Black' or self.color == 'black':
+        if self.color == 'Black':
             return True
         return False
 
     # Если цвет фигуры белый возвращает истину
     def is_white(self):
-        if self.color == 'White' or self.color == 'white':
+        if self.color == 'White':
             return True
         return False
 
     # "Убивает" фигуру
     @staticmethod
-    def _kill_figure(figure):
+    def __kill_figure(figure: 'Figure'):
         figure._is_dead = True
         figure._delete_coordinates()
+
+    # Ест фигуру
+    def _eat_figure(self, coordinates):
+        figure_target = super()._field[coordinates['x'] + coordinates['y']]
+        self.__kill_figure(figure_target)
+        self._set_position(coordinates, self)
 
 
 # Класс игрока
 class Player:
+    # Чья очередь ходить
+    __queue = 'White'
+
     def __init__(self, color):
-        self.__color = color
+        if Figure.check_figure_color(color):
+            self.__color = color
+            self.__moves_count = 0
+
+    # Двигает фигуру, выбранную игроком
+    def move_figure(self, figure: 'Figure', coordinates):
+        if figure.color == self.__color:
+            if self.__color == self.__queue:
+                if figure.move(coordinates):
+                    self.__set_negative_color()
+                    self.__moves_count += 1
+                    return True
+        return False
+
+    # Ставит противоположный цвет
+    @classmethod
+    def __set_negative_color(cls):
+        if cls.__queue == 'White':
+            cls.__queue = 'Black'
+        else:
+            cls.__queue = 'White'
 
 
 # Класс Пешки
@@ -254,7 +393,9 @@ class Pawn(Figure):
     def __init__(self, coordinates, color):
         super().__init__(self._name, coordinates, color)
         super()._create_figure(self, coordinates)
+
         self.__moves_count = 0
+        self.__is_en_passant = False
 
     @property
     def moves_count(self):
@@ -267,12 +408,14 @@ class Pawn(Figure):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
                         super()._set_position(coordinates, self)
+
                         self.__moves_count += 1
+                        return True
             elif super()._is_capture_by_pawn(self, coordinates):
-                figure_target = super()._field[coordinates['x'] + coordinates['y']]
-                self._kill_figure(figure_target)
-                super()._set_position(coordinates, self)
+                super()._eat_figure(coordinates)
+
                 self.__moves_count += 1
+                return True
 
 
 # Класс Ладьи
@@ -290,11 +433,12 @@ class Rook(Figure):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
                         super()._set_position(coordinates, self)
+                        return True
                 else:
-                    if super()._is_capture(self, coordinates):
-                        figure_target = super()._field[coordinates['x'] + coordinates['y']]
-                        self._kill_figure(figure_target)
-                        super()._set_position(coordinates, self)
+                    if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
+                        if super()._is_capture(self, coordinates):
+                            super()._eat_figure(coordinates)
+                            return True
 
 
 # Класс Коня
@@ -306,7 +450,15 @@ class Knight(Figure):
         super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
-        pass
+        if super()._check_coordinates(coordinates) and not self._is_dead:
+            if super()._knight_rules(self, coordinates):
+                if not super()._is_field_occupied(coordinates):
+                    super()._set_position(coordinates, self)
+                    return True
+                else:
+                    if super()._is_capture(self, coordinates):
+                        super()._eat_figure(coordinates)
+                        return True
 
 
 # Класс Слона
@@ -318,7 +470,17 @@ class Bishop(Figure):
         super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
-        pass
+        if super()._check_coordinates(coordinates) and not self._is_dead:
+            if super()._bishop_rules(self, coordinates):
+                if not super()._is_field_occupied(coordinates):
+                    if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
+                        super()._set_position(coordinates, self)
+                        return True
+                else:
+                    if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
+                        if super()._is_capture(self, coordinates):
+                            super()._eat_figure(coordinates)
+                            return True
 
 
 # Класс Королевы
@@ -330,7 +492,26 @@ class Queen(Figure):
         super()._create_figure(self, coordinates)
 
     def move(self, coordinates):
-        pass
+        if super()._check_coordinates(coordinates) and not self._is_dead:
+            if super()._queen_rules(self, coordinates):
+                if not super()._is_field_occupied(coordinates):
+                    if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
+                        if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
+                            super()._set_position(coordinates, self)
+                            return True
+                    elif not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
+                        super()._set_position(coordinates, self)
+                        return True
+                else:
+                    if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
+                        if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
+                            if super()._is_capture(self, coordinates):
+                                super()._eat_figure(coordinates)
+                                return True
+                    elif not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
+                        if super()._is_capture(self, coordinates):
+                            super()._eat_figure(coordinates)
+                            return True
 
 
 # Класс Короля
