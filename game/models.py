@@ -20,7 +20,7 @@ class Field:
         'A1': None, 'B1': None, 'C1': None, 'D1': None, 'E1': None, 'F1': None, 'G1': None, 'H1': None,
     }
 
-    # Необходим для индекса фигуры по иксам (A => 0, B => 1, ... , H => 7)
+    # Необходим для индексации фигуры по иксам (A => 0, B => 1, ... , H => 7)
     _field_x = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
     @property
@@ -88,6 +88,10 @@ class Field:
         else:
             print('Неверно введены ключи координат')
             return False
+
+    # Возвращает объект фигуры по координатам (в формате 'A2')
+    def _get_figure(self, coordinates):
+        return self._field[coordinates]
 
 
 # Класс описывающий правила игры
@@ -181,7 +185,12 @@ class GameRules(Field):
 
     # Взятие на проходе
     def _is_en_passant(self, pawn, coordinates):
-        pass
+        if pawn.is_white():
+            if pawn.coordinates['y'] == '5':
+                pass
+        elif pawn.is_black():
+            if pawn.coordinates['y'] == '4':
+                pass
 
     # Взятие фигурами кроме пешки
     def _is_capture(self, figure, coordinates):
@@ -358,14 +367,18 @@ class Figure(FigureRules, GameRules):
 
 
 # Класс игрока
-class Player:
+class Player(Field):
     # Чья очередь ходить
     __queue = 'White'
+    __moves_count = 0
+
+    @property
+    def moves_count(self):
+        return self.__moves_count
 
     def __init__(self, color):
         if Figure.check_figure_color(color):
             self.__color = color
-            self.__moves_count = 0
 
     # Двигает фигуру, выбранную игроком
     def move_figure(self, figure: 'Figure', coordinates):
@@ -373,7 +386,8 @@ class Player:
             if self.__color == self.__queue:
                 if figure.move(coordinates):
                     self.__set_negative_color()
-                    self.__moves_count += 1
+
+                    self.__new_move_figure()
                     return True
         return False
 
@@ -385,9 +399,13 @@ class Player:
         else:
             cls.__queue = 'White'
 
+    @classmethod
+    def __new_move_figure(cls):
+        cls.__moves_count += 1
+
 
 # Класс Пешки
-class Pawn(Figure):
+class Pawn(Figure, Player):
     _name = 'Pawn'
 
     def __init__(self, coordinates, color):
@@ -395,7 +413,7 @@ class Pawn(Figure):
         super()._create_figure(self, coordinates)
 
         self.__moves_count = 0
-        self.__is_en_passant = False
+        self._en_passant_move = None
 
     @property
     def moves_count(self):
@@ -408,6 +426,10 @@ class Pawn(Figure):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
                         super()._set_position(coordinates, self)
+
+                        if self.__moves_count == 0:
+                            if coordinates['y'] == '4' or '6':
+                                self._en_passant_move = super().moves_count + 1
 
                         self.__moves_count += 1
                         return True

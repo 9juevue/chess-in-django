@@ -1,0 +1,125 @@
+{% load static %}
+{% csrf_token %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ title }}</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'vendor/css/chess_board.css' %}">
+</head>
+<body class="body">
+<div class="box">
+    <div class="centered">
+
+        <table class="chess-board">
+            <tbody>
+            <tr>
+                <th>8</th>
+                <td id="A8"><img id="A8R" src="{% static 'vendor/img/figures/alpha/bR.png' %}" alt="черная ладья"></td>
+                <td id="B8"><img id="B8N" src="{% static 'vendor/img/figures/alpha/bN.png' %}" alt="черный конь"></td>
+                <td id="C8"><img id="C8B" src="{% static 'vendor/img/figures/alpha/bB.png' %}" alt="черный слон"></td>
+                <td id="D8"><img id="D8Q" src="{% static 'vendor/img/figures/alpha/bQ.png' %}" alt="черный ферзь"></td>
+                <td id="E8"><img id="E8K" src="{% static 'vendor/img/figures/alpha/bK.png' %}" alt="черный король"></td>
+                <td id="F8"><img id="F8B" src="{% static 'vendor/img/figures/alpha/bB.png' %}" alt="черный слон"></td>
+                <td id="G8"><img id="G8N" src="{% static 'vendor/img/figures/alpha/bN.png' %}" alt="черный конь"></td>
+                <td id="H8"><img id="H8R" src="{% static 'vendor/img/figures/alpha/bR.png' %}" alt="черная ладья"></td>
+            </tr>
+            <tr>
+                <th>7</th>
+                <td id="A7"><img id="A7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="B7"><img id="B7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="C7"><img id="C7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="D7"><img id="D7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="E7"><img id="E7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="F7"><img id="F7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="G7"><img id="G7P"  src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+                <td id="H7"><img id="H7P" src="{% static 'vendor/img/figures/alpha/bP.png' %}" alt="черная пешка"></td>
+            </tr>
+            <tr>
+                <th>6</th>
+                <td id="A6"></td>
+                <td id="B6"></td>
+                <td id="C6"></td>
+                <td id="D6"></td>
+                <td id="E6"></td>
+                <td id="F6"></td>
+                <td id="G6"></td>
+                <td id="H6"></td>
+            </tr>
+            <tr>
+                <th>5</th>
+                <td id="A5"></td>
+                <td id="B5"></td>
+                <td id="C5"></td>
+                <td id="D5"></td>
+                <td id="E5"></td>
+                <td id="F5"></td>
+                <td id="G5"></td>
+                <td id="H5"></td>
+            </tr>
+            <tr>
+                <th>4</th>
+                <td id="A4"></td>
+                <td id="B4"></td>
+                <td id="C4"></td>
+                <td id="D4"></td>
+                <td id="E4"></td>
+                <td id="F4"></td>
+                <td id="G4"></td>
+                <td id="H4"></td>
+            </tr>
+            <tr>
+                <th>3</th>
+                <td id="A3"></td>
+                <td id="B3"></td>
+                <td id="C3"></td>
+                <td id="D3"></td>
+                <td id="E3"></td>
+                <td id="F3"></td>
+                <td id="G3"></td>
+                <td id="H3"></td>
+            </tr>
+            <tr>
+                <th>2</th>
+                <td id="A2"><img id="A2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="B2"><img id="B2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="C2"><img id="C2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="D2"><img id="D2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="E2"><img id="E2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="F2"><img id="F2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="G2"><img id="G2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+                <td id="H2"><img id="H2P" src="{% static 'vendor/img/figures/alpha/wP.png' %}" alt="белая пешка"></td>
+            </tr>
+            <tr>
+                <th>1</th>
+                <td id="A1"><img id="A1R" src="{% static 'vendor/img/figures/alpha/wR.png' %}" alt="белая ладья"></td>
+                <td id="B1"><img id="B1N" src="{% static 'vendor/img/figures/alpha/wN.png' %}" alt="белый конь"></td>
+                <td id="C1"><img id="C1B" src="{% static 'vendor/img/figures/alpha/wB.png' %}" alt="белый слон"></td>
+                <td id="D1"><img id="D1Q" src="{% static 'vendor/img/figures/alpha/wQ.png' %}" alt="белый ферзь"></td>
+                <td id="E1"><img id="E1K" src="{% static 'vendor/img/figures/alpha/wK.png' %}" alt="белый король"></td>
+                <td id="F1"><img id="F1B" src="{% static 'vendor/img/figures/alpha/wB.png' %}" alt="белый слон"></td>
+                <td id="G1"><img id="G1N" src="{% static 'vendor/img/figures/alpha/wN.png' %}" alt="белый конь"></td>
+                <td id="H1"><img id="H1R" src="{% static 'vendor/img/figures/alpha/wR.png' %}" alt="белая ладья"></td>
+            </tr>
+            <tr>
+                <th></th>
+                <th>a</th>
+                <th>b</th>
+                <th>c</th>
+                <th>d</th>
+                <th>e</th>
+                <th>f</th>
+                <th>g</th>
+                <th>h</th>
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="{% static 'vendor/js/game.js' %}"></script>
+</body>
+</html>
