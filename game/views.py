@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponseRedirect
 
 from django.http import JsonResponse
 
@@ -13,7 +13,7 @@ from game.models import Player
 
 
 # Create your views here.
-figures = {
+white_figures = {
     'white_pawn_1': Pawn({'x': 'A', 'y': '2'}, 'White'),
     'white_pawn_2': Pawn({'x': 'B', 'y': '2'}, 'White'),
     'white_pawn_3': Pawn({'x': 'C', 'y': '2'}, 'White'),
@@ -29,6 +29,9 @@ figures = {
     'white_bishop_1': Bishop({'x': 'C', 'y': '1'}, 'White'),
     'white_bishop_2': Bishop({'x': 'F', 'y': '1'}, 'White'),
     'white_queen_1': Queen({'x': 'D', 'y': '1'}, 'White'),
+}
+
+black_figures = {
     'black_pawn_1': Pawn({'x': 'A', 'y': '7'}, 'Black'),
     'black_pawn_2': Pawn({'x': 'B', 'y': '7'}, 'Black'),
     'black_pawn_3': Pawn({'x': 'C', 'y': '7'}, 'Black'),
@@ -46,15 +49,18 @@ figures = {
     'black_queen_1': Queen({'x': 'D', 'y': '8'}, 'Black'),
 }
 
-white_player = Player('White')
-black_player = Player('Black')
+white_player = Player('White', white_figures)
+black_player = Player('Black', black_figures)
 
 
 def game(request):
     if request.method == 'POST':
         if 'reload' in request.POST:
             if request.POST['reload']:
-                pass
+                # Ставит фигуры на начальное положение после перезагрузки страницы
+                white_player._init_figures()
+                black_player._init_figures()
+                print(white_player._get_console_field())
 
         if 'coordinates_old' in request.POST:
             coordinates_old = request.POST['coordinates_old']

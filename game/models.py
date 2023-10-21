@@ -315,6 +315,7 @@ class Figure(FigureRules, GameRules):
                 self._color = color
                 self._id = color + name + coordinates['x'] + coordinates['y']
                 self._is_dead = False
+                self._start_coordinates = {'x': coordinates['x'], 'y': coordinates['y']}
         else:
             raise Exception('Ошибка при создании фигуры')
 
@@ -339,7 +340,7 @@ class Figure(FigureRules, GameRules):
             self._coordinates = None
 
     # Ставит фигуру на заданную позицию
-    def _set_position(self, coordinates, figure):
+    def _set_position(self, figure, coordinates):
         super()._set_none(self._coordinates)
         super()._set_figure(figure, coordinates)
 
@@ -377,13 +378,12 @@ class Figure(FigureRules, GameRules):
     @staticmethod
     def __kill_figure(figure: 'Figure'):
         figure._is_dead = True
-        figure._delete_coordinates()
 
     # Ест фигуру
     def _eat_figure(self, coordinates):
         figure_target = super()._field[coordinates['x'] + coordinates['y']]
         self.__kill_figure(figure_target)
-        self._set_position(coordinates, self)
+        self._set_position(self, coordinates)
 
 
 # Класс игрока
@@ -392,13 +392,14 @@ class Player(Field):
     __queue = 'White'
     __moves_count = 0
 
+    def __init__(self, color, figures):
+        if Figure.check_figure_color(color):
+            self.__color = color
+            self._figures = figures
+
     @property
     def moves_count(self):
         return self.__moves_count
-
-    def __init__(self, color):
-        if Figure.check_figure_color(color):
-            self.__color = color
 
     # Двигает фигуру, выбранную игроком
     def move_figure(self, figure: 'Figure', coordinates):
@@ -419,9 +420,26 @@ class Player(Field):
         else:
             cls.__queue = 'White'
 
+    # Ставит белый цвет
+    @classmethod
+    def __set_white_color(cls):
+        cls.__queue = 'White'
+
+    # Считает количество ходов сделанных обоими игроками
     @classmethod
     def __new_move_figure(cls):
         cls.__moves_count += 1
+
+    # Ставит фигуры на начальные позиции
+    def _init_figures(self):
+        if self.__color == 'White':
+            for key, figure in self._figures.items():
+                figure._set_position(figure, figure._start_coordinates)
+        if self.__color == 'Black':
+            for key, figure in self._figures.items():
+                figure._set_position(figure, figure._start_coordinates)
+
+        self.__set_white_color()
 
 
 # Класс Пешки
@@ -445,7 +463,7 @@ class Pawn(Figure, Player):
             if super()._pawn_rules(self, coordinates):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(coordinates, self)
+                        super()._set_position(self, coordinates)
 
                         if self.__moves_count == 0:
                             if coordinates['y'] == '4' or '6':
@@ -474,7 +492,7 @@ class Rook(Figure):
             if super()._rook_rules(self, coordinates):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(coordinates, self)
+                        super()._set_position(self, coordinates)
                         return True
                 else:
                     if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
@@ -495,7 +513,7 @@ class Knight(Figure):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._knight_rules(self, coordinates):
                 if not super()._is_field_occupied(coordinates):
-                    super()._set_position(coordinates, self)
+                    super()._set_position(self, coordinates)
                     return True
                 else:
                     if super()._is_capture(self, coordinates):
@@ -516,7 +534,7 @@ class Bishop(Figure):
             if super()._bishop_rules(self, coordinates):
                 if not super()._is_field_occupied(coordinates):
                     if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(coordinates, self)
+                        super()._set_position(self, coordinates)
                         return True
                 else:
                     if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
@@ -539,10 +557,10 @@ class Queen(Figure):
                 if not super()._is_field_occupied(coordinates):
                     if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
                         if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                            super()._set_position(coordinates, self)
+                            super()._set_position(self, coordinates)
                             return True
                     elif not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(coordinates, self)
+                        super()._set_position(self, coordinates)
                         return True
                 else:
                     if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
