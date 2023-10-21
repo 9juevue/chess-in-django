@@ -108,19 +108,25 @@ class GameRules(Field):
     def _is_vertical_overstep(self, figure, coordinates):
         index_current = self.field_x.index(figure.coordinates['x'])
         index_future = self.field_x.index(coordinates['x'])
-        step_y = index_future - index_current
+        step_x = index_future - index_current
+        step_y = int(coordinates['y']) - int(figure.coordinates['y'])
 
-        if step_y == 0:
-            for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
-                if self.field[coordinates['x'] + str(i)] is not None:
-                    return True
-        else:
+        if step_x == 0:
             if step_y > 0:
-                for i in range(index_current, index_future):
+                for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
+                    if self.field[coordinates['x'] + str(i)] is not None:
+                        return True
+            else:
+                for i in range(int(figure.coordinates['y']) - 1, int(coordinates['y']), -1):
+                    if self.field[coordinates['x'] + str(i)] is not None:
+                        return True
+        else:
+            if step_x > 0:
+                for i in range(index_current + 1, index_future):
                     if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
                         return True
             else:
-                for i in range(index_current, index_future, -1):
+                for i in range(index_current - 1, index_future, -1):
                     if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
                         return True
 
@@ -183,14 +189,14 @@ class GameRules(Field):
                 if _is_capture():
                     return True
 
-    # Взятие на проходе
-    def _is_en_passant(self, pawn, coordinates):
-        if pawn.is_white():
-            if pawn.coordinates['y'] == '5':
-                pass
-        elif pawn.is_black():
-            if pawn.coordinates['y'] == '4':
-                pass
+    # # Взятие на проходе
+    # def _is_en_passant(self, pawn, coordinates):
+    #     if pawn.is_white():
+    #         if pawn.coordinates['y'] == '5':
+    #             pass
+    #     elif pawn.is_black():
+    #         if pawn.coordinates['y'] == '4':
+    #             pass
 
     # Взятие фигурами кроме пешки
     def _is_capture(self, figure, coordinates):
@@ -242,15 +248,29 @@ class FigureRules:
             if knight.coordinates != coordinates:
                 index = knight.field_x.index(knight.coordinates['x'])
 
-                if coordinates['x'] == knight.field_x[index + 1] or coordinates['x'] == knight.field_x[index - 1]:
-                    if int(coordinates['y']) == int(knight.coordinates['y']) + 2 or int(coordinates['y']) == int(
-                            knight.coordinates['y']) - 2:
-                        return True
+                if index + 1 <= len(knight.field_x) - 1:
+                    if coordinates['x'] == knight.field_x[index + 1]:
+                        if int(coordinates['y']) == int(knight.coordinates['y']) + 2 or int(coordinates['y']) == int(
+                                knight.coordinates['y']) - 2:
+                            return True
 
-                if coordinates['x'] == knight.field_x[index + 2] or coordinates['x'] == knight.field_x[index - 2]:
-                    if int(coordinates['y']) == int(knight.coordinates['y']) + 1 or int(coordinates['y']) == int(
-                            knight.coordinates['y']) - 1:
-                        return True
+                if index + 2 <= len(knight.field_x) - 1:
+                    if coordinates['x'] == knight.field_x[index + 2]:
+                        if int(coordinates['y']) == int(knight.coordinates['y']) + 1 or int(coordinates['y']) == int(
+                                knight.coordinates['y']) - 1:
+                            return True
+
+                if index - 1 >= 0:
+                    if coordinates['x'] == knight.field_x[index - 1]:
+                        if int(coordinates['y']) == int(knight.coordinates['y']) + 2 or int(coordinates['y']) == int(
+                                knight.coordinates['y']) - 2:
+                            return True
+
+                if index - 2 >= 0:
+                    if coordinates['x'] == knight.field_x[index - 2]:
+                        if int(coordinates['y']) == int(knight.coordinates['y']) + 1 or int(coordinates['y']) == int(
+                                knight.coordinates['y']) - 1:
+                            return True
         return False
 
     # Проверяет, может ли слон сделать ход
