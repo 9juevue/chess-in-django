@@ -385,6 +385,9 @@ class Figure(FigureRules, GameRules):
         self.__kill_figure(figure_target)
         self._set_position(self, coordinates)
 
+    def _revive_figure(self):
+        self._is_dead = False
+
 
 # Класс игрока
 class Player(Field):
@@ -409,6 +412,7 @@ class Player(Field):
                     self.__set_negative_color()
 
                     self.__new_move_figure()
+                    super()._get_console_field()
                     return True
         return False
 
@@ -435,9 +439,16 @@ class Player(Field):
         if self.__color == 'White':
             for key, figure in self._figures.items():
                 figure._set_position(figure, figure._start_coordinates)
+                figure._revive_figure()
+                if isinstance(figure, Pawn):
+                    figure._init_pawn()
+
         if self.__color == 'Black':
             for key, figure in self._figures.items():
                 figure._set_position(figure, figure._start_coordinates)
+                figure._revive_figure()
+                if isinstance(figure, Pawn):
+                    figure._init_pawn()
 
         self.__set_white_color()
 
@@ -456,6 +467,10 @@ class Pawn(Figure, Player):
     @property
     def moves_count(self):
         return self.__moves_count
+
+    # Приравнивает количество ходов пешки к нулю
+    def _init_pawn(self):
+        self.__moves_count = 0
 
     # Ставит пешку на заданную позицию, с проверками
     def move(self, coordinates):

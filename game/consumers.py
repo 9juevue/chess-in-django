@@ -50,15 +50,11 @@ black_player = Player('Black', black_figures)
 
 
 class ChessConsumer(WebsocketConsumer):
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        print('helllo')
 
     def connect(self):
         white_player._init_figures()
         black_player._init_figures()
-        print(white_player._get_console_field())
+        white_player._get_console_field()
 
         self.room_group_name = 'test'
 
@@ -76,6 +72,7 @@ class ChessConsumer(WebsocketConsumer):
                 coordinates_old = text_data_json['coordinates_old']
                 coordinates_new = text_data_json['coordinates_new']
                 figure = (white_player._get_figure(coordinates_old))
+
                 status = None
 
                 if figure is None:
@@ -106,8 +103,6 @@ class ChessConsumer(WebsocketConsumer):
                             'original_position_top': text_data_json['original_position_top'],
                         }
                     )
-
-                    print(figure._get_console_field())
 
             if text_data_json['type'] == 'message':
                 message = text_data_json['message']
