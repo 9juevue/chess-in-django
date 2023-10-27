@@ -1,18 +1,51 @@
 $(document).ready(function () {
     let url = `ws://${window.location.host}/ws/socket-server/`;
-
     const chessSocket = new WebSocket(url);
+
+    chessSocket.onopen = function (e) {
+        chessSocket.send(JSON.stringify({
+            'type': 'init_game',
+            'id': '3d67cvH',
+            'white_player': 'Ruslan',
+            'black_player': 'Vladimir'
+        }));
+    }
 
     chessSocket.onmessage = function (e) {
         let data = JSON.parse(e.data);
 
+        console.log(data);
+
         if (data.type === 'chat') {
             let messages = document.getElementById('messages');
+
             messages.insertAdjacentHTML('beforeend', `<div><p>${data.message}</p></div>`)
+        }
+
+        if (data.type === 'init_current_field') {
+            let coordinates,
+                color,
+                name,
+                start_coordinates,
+                figureId;
+            Object.entries(data.field).forEach(
+                (key, value) => {
+                    if (key[1] != null) {
+                        coordinates = key[0];
+                        color = key[1]['color'];
+                        name = key[1]['name'];
+                        start_coordinates = key[1]['start_coordinates']
+                        figureId = start_coordinates + name[0];
+                        console.log(figureId, coordinates);
+                        $('#' + figureId).appendTo($('#' + coordinates));
+                    }
+                }
+            )
         }
 
         if (data.type === 'figure_move') {
             let figure = $('#' + data['figure_id']);
+
             if (data.status) {
                 let coordinatesNew = $('#' + data['coordinates_new']);
 
@@ -49,7 +82,7 @@ $(document).ready(function () {
                 ([key, value]) => {
                     if (value.tagName === 'TD') {
                         let coordinatesOld = ui.helper[0].id.substring(0, 2),
-                        coordinatesNew = value.id;
+                            coordinatesNew = value.id;
 
                         chessSocket.send(JSON.stringify({
                             'type': 'figure_move',

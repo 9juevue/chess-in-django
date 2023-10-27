@@ -22,6 +22,11 @@ class Field:
 
     # Необходим для индексации фигуры по иксам (A => 0, B => 1, ... , H => 7)
     _field_x = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+    _moves_count = 0
+    players = {}
+
+    def __init__(self, game_id=None):
+        self._game_id = game_id
 
     @property
     def field(self):
@@ -31,8 +36,27 @@ class Field:
     def field_x(self):
         return self._field_x
 
+    @property
+    def game_id(self):
+        return self._game_id
+
+    @property
+    def moves_count(self):
+        return self._moves_count
+
+    @classmethod
+    def new_move_figure(cls):
+        cls._moves_count += 1
+
+    @classmethod
+    def _moves_count_none(cls):
+        cls._moves_count = 0
+
+    def get_game_id(self):
+        return self._game_id
+
     # Возвращает поле в читабельном виде для консоли
-    def _get_console_field(self):
+    def get_console_field(self):
         i = 0
         y = 8
 
@@ -57,6 +81,21 @@ class Field:
             print("{:<9}".format(self.field_x[i]), end=' ')
 
         print('')
+
+    # Возвращает поле с фигурами
+    def get_field_text(self):
+        text_field = self.field.copy()
+        for key in text_field:
+            if text_field[key] is not None:
+                if hasattr(text_field[key], 'name'):
+                    text_field[key] = {
+                        'name': text_field[key].name,
+                        'color': text_field[key].color,
+                        'start_coordinates': str(text_field[key].start_coordinates['x']) + str(
+                            text_field[key].start_coordinates['y'])
+                    }
+
+        return text_field
 
     # Ставит фигуру на заданное положение в доске
     def _set_figure(self, figure, coordinates):
@@ -90,8 +129,48 @@ class Field:
             return False
 
     # Возвращает объект фигуры по координатам (в формате 'A2')
-    def _get_figure(self, coordinates):
+    def get_figure(self, coordinates):
         return self._field[coordinates]
+
+    # Создает фигуры и расставляет на начальные позиции
+    def init_game(self):
+        white_figures = {
+            'white_pawn_1': Pawn({'x': 'A', 'y': '2'}, 'White'),
+            'white_pawn_2': Pawn({'x': 'B', 'y': '2'}, 'White'),
+            'white_pawn_3': Pawn({'x': 'C', 'y': '2'}, 'White'),
+            'white_pawn_4': Pawn({'x': 'D', 'y': '2'}, 'White'),
+            'white_pawn_5': Pawn({'x': 'E', 'y': '2'}, 'White'),
+            'white_pawn_6': Pawn({'x': 'F', 'y': '2'}, 'White'),
+            'white_pawn_7': Pawn({'x': 'G', 'y': '2'}, 'White'),
+            'white_pawn_8': Pawn({'x': 'H', 'y': '2'}, 'White'),
+            'white_rook_1': Rook({'x': 'A', 'y': '1'}, 'White'),
+            'white_rook_2': Rook({'x': 'H', 'y': '1'}, 'White'),
+            'white_knight_1': Knight({'x': 'B', 'y': '1'}, 'White'),
+            'white_knight_2': Knight({'x': 'G', 'y': '1'}, 'White'),
+            'white_bishop_1': Bishop({'x': 'C', 'y': '1'}, 'White'),
+            'white_bishop_2': Bishop({'x': 'F', 'y': '1'}, 'White'),
+            'white_queen_1': Queen({'x': 'D', 'y': '1'}, 'White'),
+        }
+        black_figures = {
+            'black_pawn_1': Pawn({'x': 'A', 'y': '7'}, 'Black'),
+            'black_pawn_2': Pawn({'x': 'B', 'y': '7'}, 'Black'),
+            'black_pawn_3': Pawn({'x': 'C', 'y': '7'}, 'Black'),
+            'black_pawn_4': Pawn({'x': 'D', 'y': '7'}, 'Black'),
+            'black_pawn_5': Pawn({'x': 'E', 'y': '7'}, 'Black'),
+            'black_pawn_6': Pawn({'x': 'F', 'y': '7'}, 'Black'),
+            'black_pawn_7': Pawn({'x': 'G', 'y': '7'}, 'Black'),
+            'black_pawn_8': Pawn({'x': 'H', 'y': '7'}, 'Black'),
+            'black_rook_1': Rook({'x': 'A', 'y': '8'}, 'Black'),
+            'black_rook_2': Rook({'x': 'H', 'y': '8'}, 'Black'),
+            'black_knight_1': Knight({'x': 'B', 'y': '8'}, 'Black'),
+            'black_knight_2': Knight({'x': 'G', 'y': '8'}, 'Black'),
+            'black_bishop_1': Bishop({'x': 'C', 'y': '8'}, 'Black'),
+            'black_bishop_2': Bishop({'x': 'F', 'y': '8'}, 'Black'),
+            'black_queen_1': Queen({'x': 'D', 'y': '8'}, 'Black'),
+        }
+        white_player = Player('White', white_figures)
+        black_player = Player('Black', black_figures)
+        self.players = {'white_player': white_player, 'black_player': black_player}
 
 
 # Класс описывающий правила игры
@@ -300,6 +379,66 @@ class FigureRules:
                 return True
 
 
+# Класс игрока
+class Player:
+    # Чья очередь ходить
+    __queue = 'White'
+
+    def __init__(self, color, figures):
+        if Figure.check_figure_color(color):
+            self.__color = color
+            self._figures = figures
+
+    # Двигает фигуру, выбранную игроком
+    def move_figure(self, figure: 'Figure', coordinates):
+        if figure.color == self.__color:
+            if self.__color == self.__queue:
+                if figure.move(coordinates):
+                    self.__set_negative_color()
+
+                    figure.new_move_figure()
+                    figure.get_console_field()
+
+                    return True
+        return False
+
+    @property
+    def figures(self):
+        return self._figures
+
+    # Ставит противоположный цвет
+    @classmethod
+    def __set_negative_color(cls):
+        if cls.__queue == 'White':
+            cls.__queue = 'Black'
+        else:
+            cls.__queue = 'White'
+
+    # Ставит белый цвет
+    @classmethod
+    def __set_white_color(cls):
+        cls.__queue = 'White'
+
+    # # Ставит фигуры на начальные позиции
+    # def _init_figures(self):
+    #     if self.__color == 'White':
+    #         for key, figure in self._figures.items():
+    #             figure._set_position(figure, figure._start_coordinates)
+    #             figure._revive_figure()
+    #             if isinstance(figure, Pawn):
+    #                 figure._init_pawn()
+    #
+    #     if self.__color == 'Black':
+    #         for key, figure in self._figures.items():
+    #             figure._set_position(figure, figure._start_coordinates)
+    #             figure._revive_figure()
+    #             if isinstance(figure, Pawn):
+    #                 figure._init_pawn()
+    #
+    #     self.__set_white_color()
+    #     super()._moves_count_none()
+
+
 # Класс описывающий фигуру
 class Figure(FigureRules, GameRules):
     # coordinates - координаты куда хочет сделать ход фигура
@@ -308,6 +447,7 @@ class Figure(FigureRules, GameRules):
     _coordinates = {'x': None, 'y': None}
 
     def __init__(self, name, coordinates, color):
+        super().__init__()
         if super()._check_coordinates(coordinates):
             if self.check_figure_color(color):
                 self._name = name
@@ -334,6 +474,10 @@ class Figure(FigureRules, GameRules):
     @property
     def coordinates(self):
         return self._coordinates
+
+    @property
+    def start_coordinates(self):
+        return self._start_coordinates
 
     def _delete_coordinates(self):
         if self._is_dead:
@@ -389,70 +533,6 @@ class Figure(FigureRules, GameRules):
         self._is_dead = False
 
 
-# Класс игрока
-class Player(Field):
-    # Чья очередь ходить
-    __queue = 'White'
-    __moves_count = 0
-
-    def __init__(self, color, figures):
-        if Figure.check_figure_color(color):
-            self.__color = color
-            self._figures = figures
-
-    @property
-    def moves_count(self):
-        return self.__moves_count
-
-    # Двигает фигуру, выбранную игроком
-    def move_figure(self, figure: 'Figure', coordinates):
-        if figure.color == self.__color:
-            if self.__color == self.__queue:
-                if figure.move(coordinates):
-                    self.__set_negative_color()
-
-                    self.__new_move_figure()
-                    super()._get_console_field()
-                    return True
-        return False
-
-    # Ставит противоположный цвет
-    @classmethod
-    def __set_negative_color(cls):
-        if cls.__queue == 'White':
-            cls.__queue = 'Black'
-        else:
-            cls.__queue = 'White'
-
-    # Ставит белый цвет
-    @classmethod
-    def __set_white_color(cls):
-        cls.__queue = 'White'
-
-    # Считает количество ходов сделанных обоими игроками
-    @classmethod
-    def __new_move_figure(cls):
-        cls.__moves_count += 1
-
-    # Ставит фигуры на начальные позиции
-    def _init_figures(self):
-        if self.__color == 'White':
-            for key, figure in self._figures.items():
-                figure._set_position(figure, figure._start_coordinates)
-                figure._revive_figure()
-                if isinstance(figure, Pawn):
-                    figure._init_pawn()
-
-        if self.__color == 'Black':
-            for key, figure in self._figures.items():
-                figure._set_position(figure, figure._start_coordinates)
-                figure._revive_figure()
-                if isinstance(figure, Pawn):
-                    figure._init_pawn()
-
-        self.__set_white_color()
-
-
 # Класс Пешки
 class Pawn(Figure, Player):
     _name = 'Pawn'
@@ -482,7 +562,7 @@ class Pawn(Figure, Player):
 
                         if self.__moves_count == 0:
                             if coordinates['y'] == '4' or '6':
-                                self._en_passant_move = super().moves_count + 1
+                                pass
 
                         self.__moves_count += 1
                         return True

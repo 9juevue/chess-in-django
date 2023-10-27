@@ -10,5 +10,4 @@ def game(request):
         'title': 'Игра',
     }
 
-
     return render(request, 'game/game.html', context)
