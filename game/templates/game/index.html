@@ -1,0 +1,20 @@
+{% extends 'game/base.html' %}
+{% load static %}
+{% csrf_token %}
+
+{% block css %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+    <button id="create_room" type="button" class="bg-blue-500 p-2">Создать комнату</button>
+    <div id="room_list" class="bg-amber-400 grid">
+        <p>Список комнат:</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'vendor/js/create_room.js' %}"></script>
+{% endblock %}

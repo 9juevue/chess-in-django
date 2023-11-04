@@ -1,11 +1,14 @@
 $(document).ready(function () {
-    let url = `ws://${window.location.host}/ws/socket-server/`;
+    let unique_string = window.location.pathname.replace(/\/$/, '').split("/").pop();
+    let url = `ws://${window.location.host}/ws/socket-server/` + unique_string + `/`;
     const chessSocket = new WebSocket(url);
 
     chessSocket.onopen = function (e) {
+
+
         chessSocket.send(JSON.stringify({
             'type': 'init_game',
-            'id': '3d67cvH',
+            'id': unique_string,
             'white_player': 'Ruslan',
             'black_player': 'Vladimir'
         }));
@@ -22,26 +25,25 @@ $(document).ready(function () {
             messages.insertAdjacentHTML('beforeend', `<div><p>${data.message}</p></div>`)
         }
 
-        if (data.type === 'init_current_field') {
-            let coordinates,
-                color,
-                name,
-                start_coordinates,
-                figureId;
-            Object.entries(data.field).forEach(
-                (key, value) => {
-                    if (key[1] != null) {
-                        coordinates = key[0];
-                        color = key[1]['color'];
-                        name = key[1]['name'];
-                        start_coordinates = key[1]['start_coordinates']
-                        figureId = start_coordinates + name[0];
-                        console.log(figureId, coordinates);
-                        $('#' + figureId).appendTo($('#' + coordinates));
-                    }
-                }
-            )
-        }
+        // if (data.type === 'init_current_field') {
+        //     let coordinates,
+        //         color,
+        //         name,
+        //         start_coordinates,
+        //         figureId;
+        //     Object.entries(data.field).forEach(
+        //         (key, value) => {
+        //             if (key[1] != null) {
+        //                 coordinates = key[0];
+        //                 color = key[1]['color'];
+        //                 name = key[1]['name'];
+        //                 start_coordinates = key[1]['start_coordinates']
+        //                 figureId = start_coordinates + name[0];
+        //                 $('#' + figureId).appendTo($('#' + coordinates));
+        //             }
+        //         }
+        //     )
+        // }
 
         if (data.type === 'figure_move') {
             let figure = $('#' + data['figure_id']);

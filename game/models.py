@@ -8,29 +8,32 @@ from django.db import models
 
 # Класс игрового поля
 class Field:
-    # Шахматное поле
-    _field = {
-        'A8': None, 'B8': None, 'C8': None, 'D8': None, 'E8': None, 'F8': None, 'G8': None, 'H8': None,
-        'A7': None, 'B7': None, 'C7': None, 'D7': None, 'E7': None, 'F7': None, 'G7': None, 'H7': None,
-        'A6': None, 'B6': None, 'C6': None, 'D6': None, 'E6': None, 'F6': None, 'G6': None, 'H6': None,
-        'A5': None, 'B5': None, 'C5': None, 'D5': None, 'E5': None, 'F5': None, 'G5': None, 'H5': None,
-        'A4': None, 'B4': None, 'C4': None, 'D4': None, 'E4': None, 'F4': None, 'G4': None, 'H4': None,
-        'A3': None, 'B3': None, 'C3': None, 'D3': None, 'E3': None, 'F3': None, 'G3': None, 'H3': None,
-        'A2': None, 'B2': None, 'C2': None, 'D2': None, 'E2': None, 'F2': None, 'G2': None, 'H2': None,
-        'A1': None, 'B1': None, 'C1': None, 'D1': None, 'E1': None, 'F1': None, 'G1': None, 'H1': None,
-    }
-
     # Необходим для индексации фигуры по иксам (A => 0, B => 1, ... , H => 7)
     _field_x = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     _moves_count = 0
-    players = {}
 
-    def __init__(self, game_id=None):
-        self._game_id = game_id
+    def __init__(self, game_id=None, *args, **kwargs):
+        self.__game_id = game_id
+        self._field = {
+            'A8': None, 'B8': None, 'C8': None, 'D8': None, 'E8': None, 'F8': None, 'G8': None, 'H8': None,
+            'A7': None, 'B7': None, 'C7': None, 'D7': None, 'E7': None, 'F7': None, 'G7': None, 'H7': None,
+            'A6': None, 'B6': None, 'C6': None, 'D6': None, 'E6': None, 'F6': None, 'G6': None, 'H6': None,
+            'A5': None, 'B5': None, 'C5': None, 'D5': None, 'E5': None, 'F5': None, 'G5': None, 'H5': None,
+            'A4': None, 'B4': None, 'C4': None, 'D4': None, 'E4': None, 'F4': None, 'G4': None, 'H4': None,
+            'A3': None, 'B3': None, 'C3': None, 'D3': None, 'E3': None, 'F3': None, 'G3': None, 'H3': None,
+            'A2': None, 'B2': None, 'C2': None, 'D2': None, 'E2': None, 'F2': None, 'G2': None, 'H2': None,
+            'A1': None, 'B1': None, 'C1': None, 'D1': None, 'E1': None, 'F1': None, 'G1': None, 'H1': None,
+        }
+        self.players = {}
+        self._queue = 'White'
 
     @property
     def field(self):
         return self._field
+
+    @property
+    def queue(self):
+        return self._queue
 
     @property
     def field_x(self):
@@ -38,14 +41,14 @@ class Field:
 
     @property
     def game_id(self):
-        return self._game_id
+        return self.__game_id
 
     @property
     def moves_count(self):
         return self._moves_count
 
     @classmethod
-    def new_move_figure(cls):
+    def new_move_piece(cls):
         cls._moves_count += 1
 
     @classmethod
@@ -53,13 +56,15 @@ class Field:
         cls._moves_count = 0
 
     def get_game_id(self):
-        return self._game_id
+        return self.__game_id
 
     # Возвращает поле в читабельном виде для консоли
     def get_console_field(self):
         i = 0
         y = 8
 
+        print('')
+        print('Chess board id: ' + self.__game_id + '. Queue: ' + self._queue)
         for key in self._field:
             obj = self._field[key]
 
@@ -81,6 +86,7 @@ class Field:
             print("{:<9}".format(self.field_x[i]), end=' ')
 
         print('')
+        print('')
 
     # Возвращает поле с фигурами
     def get_field_text(self):
@@ -98,22 +104,23 @@ class Field:
         return text_field
 
     # Ставит фигуру на заданное положение в доске
-    def _set_figure(self, figure, coordinates):
+    def _set_piece(self, piece, coordinates, chess_board: 'Field'):
         if self._check_coordinates(coordinates):
-            self._field[coordinates['x'] + coordinates['y']] = figure
+            chess_board._field[coordinates['x'] + coordinates['y']] = piece
 
     # Создает фигуру на доске в заданной позиции
-    def _create_figure(self, figure, coordinates):
-        if self._check_coordinates(coordinates):
-            if self._field[coordinates['x'] + coordinates['y']] is None:
-                self._field[coordinates['x'] + coordinates['y']] = figure
+    @staticmethod
+    def _create_piece(piece, coordinates, chess_board: 'Field'):
+        if chess_board._check_coordinates(coordinates):
+            if chess_board._field[coordinates['x'] + coordinates['y']] is None:
+                chess_board._field[coordinates['x'] + coordinates['y']] = piece
             else:
                 raise Exception('Нельзя создать фигуру поверх другой')
 
     # Удаляет фигуру с позиции
-    def _set_none(self, coordinates):
+    def _set_none(self, coordinates, chess_board: 'Field'):
         if self._check_coordinates(coordinates):
-            self._field[coordinates['x'] + coordinates['y']] = None
+            chess_board._field[coordinates['x'] + coordinates['y']] = None
 
     # Проверяет, правильно ли введены координаты
     def _check_coordinates(self, coordinates):
@@ -129,47 +136,55 @@ class Field:
             return False
 
     # Возвращает объект фигуры по координатам (в формате 'A2')
-    def get_figure(self, coordinates):
-        return self._field[coordinates]
+    @staticmethod
+    def get_piece(coordinates, chess_board: 'Field'):
+        return chess_board._field[coordinates]
+
+    # Ставит противоположный цвет
+    def set_negative_color(self):
+        if self._queue == 'White':
+            self._queue = 'Black'
+        else:
+            self._queue = 'White'
 
     # Создает фигуры и расставляет на начальные позиции
-    def init_game(self):
-        white_figures = {
-            'white_pawn_1': Pawn({'x': 'A', 'y': '2'}, 'White'),
-            'white_pawn_2': Pawn({'x': 'B', 'y': '2'}, 'White'),
-            'white_pawn_3': Pawn({'x': 'C', 'y': '2'}, 'White'),
-            'white_pawn_4': Pawn({'x': 'D', 'y': '2'}, 'White'),
-            'white_pawn_5': Pawn({'x': 'E', 'y': '2'}, 'White'),
-            'white_pawn_6': Pawn({'x': 'F', 'y': '2'}, 'White'),
-            'white_pawn_7': Pawn({'x': 'G', 'y': '2'}, 'White'),
-            'white_pawn_8': Pawn({'x': 'H', 'y': '2'}, 'White'),
-            'white_rook_1': Rook({'x': 'A', 'y': '1'}, 'White'),
-            'white_rook_2': Rook({'x': 'H', 'y': '1'}, 'White'),
-            'white_knight_1': Knight({'x': 'B', 'y': '1'}, 'White'),
-            'white_knight_2': Knight({'x': 'G', 'y': '1'}, 'White'),
-            'white_bishop_1': Bishop({'x': 'C', 'y': '1'}, 'White'),
-            'white_bishop_2': Bishop({'x': 'F', 'y': '1'}, 'White'),
-            'white_queen_1': Queen({'x': 'D', 'y': '1'}, 'White'),
+    def init_game(self, chess_board):
+        white_pieces = {
+            'white_pawn_1': Pawn({'x': 'A', 'y': '2'}, 'White', chess_board),
+            'white_pawn_2': Pawn({'x': 'B', 'y': '2'}, 'White', chess_board),
+            'white_pawn_3': Pawn({'x': 'C', 'y': '2'}, 'White', chess_board),
+            'white_pawn_4': Pawn({'x': 'D', 'y': '2'}, 'White', chess_board),
+            'white_pawn_5': Pawn({'x': 'E', 'y': '2'}, 'White', chess_board),
+            'white_pawn_6': Pawn({'x': 'F', 'y': '2'}, 'White', chess_board),
+            'white_pawn_7': Pawn({'x': 'G', 'y': '2'}, 'White', chess_board),
+            'white_pawn_8': Pawn({'x': 'H', 'y': '2'}, 'White', chess_board),
+            'white_rook_1': Rook({'x': 'A', 'y': '1'}, 'White', chess_board),
+            'white_rook_2': Rook({'x': 'H', 'y': '1'}, 'White', chess_board),
+            'white_knight_1': Knight({'x': 'B', 'y': '1'}, 'White', chess_board),
+            'white_knight_2': Knight({'x': 'G', 'y': '1'}, 'White', chess_board),
+            'white_bishop_1': Bishop({'x': 'C', 'y': '1'}, 'White', chess_board),
+            'white_bishop_2': Bishop({'x': 'F', 'y': '1'}, 'White', chess_board),
+            'white_queen_1': Queen({'x': 'D', 'y': '1'}, 'White', chess_board),
         }
-        black_figures = {
-            'black_pawn_1': Pawn({'x': 'A', 'y': '7'}, 'Black'),
-            'black_pawn_2': Pawn({'x': 'B', 'y': '7'}, 'Black'),
-            'black_pawn_3': Pawn({'x': 'C', 'y': '7'}, 'Black'),
-            'black_pawn_4': Pawn({'x': 'D', 'y': '7'}, 'Black'),
-            'black_pawn_5': Pawn({'x': 'E', 'y': '7'}, 'Black'),
-            'black_pawn_6': Pawn({'x': 'F', 'y': '7'}, 'Black'),
-            'black_pawn_7': Pawn({'x': 'G', 'y': '7'}, 'Black'),
-            'black_pawn_8': Pawn({'x': 'H', 'y': '7'}, 'Black'),
-            'black_rook_1': Rook({'x': 'A', 'y': '8'}, 'Black'),
-            'black_rook_2': Rook({'x': 'H', 'y': '8'}, 'Black'),
-            'black_knight_1': Knight({'x': 'B', 'y': '8'}, 'Black'),
-            'black_knight_2': Knight({'x': 'G', 'y': '8'}, 'Black'),
-            'black_bishop_1': Bishop({'x': 'C', 'y': '8'}, 'Black'),
-            'black_bishop_2': Bishop({'x': 'F', 'y': '8'}, 'Black'),
-            'black_queen_1': Queen({'x': 'D', 'y': '8'}, 'Black'),
+        black_pieces = {
+            'black_pawn_1': Pawn({'x': 'A', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_2': Pawn({'x': 'B', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_3': Pawn({'x': 'C', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_4': Pawn({'x': 'D', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_5': Pawn({'x': 'E', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_6': Pawn({'x': 'F', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_7': Pawn({'x': 'G', 'y': '7'}, 'Black', chess_board),
+            'black_pawn_8': Pawn({'x': 'H', 'y': '7'}, 'Black', chess_board),
+            'black_rook_1': Rook({'x': 'A', 'y': '8'}, 'Black', chess_board),
+            'black_rook_2': Rook({'x': 'H', 'y': '8'}, 'Black', chess_board),
+            'black_knight_1': Knight({'x': 'B', 'y': '8'}, 'Black', chess_board),
+            'black_knight_2': Knight({'x': 'G', 'y': '8'}, 'Black', chess_board),
+            'black_bishop_1': Bishop({'x': 'C', 'y': '8'}, 'Black', chess_board),
+            'black_bishop_2': Bishop({'x': 'F', 'y': '8'}, 'Black', chess_board),
+            'black_queen_1': Queen({'x': 'D', 'y': '8'}, 'Black', chess_board),
         }
-        white_player = Player('White', white_figures)
-        black_player = Player('Black', black_figures)
+        white_player = Player('White', white_pieces)
+        black_player = Player('Black', black_pieces)
         self.players = {'white_player': white_player, 'black_player': black_player}
 
 
@@ -177,80 +192,83 @@ class Field:
 class GameRules(Field):
 
     # Проверяет, занято ли поле фигурой
-    def _is_field_occupied(self, coordinates):
+    @staticmethod
+    def _is_field_occupied(coordinates, chess_board: 'Field'):
         key = coordinates['x'] + coordinates['y']
 
-        if self.field[key] is not None:
+        if chess_board.field[key] is not None:
             return True
 
     # Проверяет, есть ли на вертикальном пути фигуры
-    def _is_vertical_overstep(self, figure, coordinates):
-        index_current = self.field_x.index(figure.coordinates['x'])
+    def _is_vertical_overstep(self, piece, coordinates, chess_board: 'Field'):
+        index_current = self.field_x.index(piece.coordinates['x'])
         index_future = self.field_x.index(coordinates['x'])
         step_x = index_future - index_current
-        step_y = int(coordinates['y']) - int(figure.coordinates['y'])
+        step_y = int(coordinates['y']) - int(piece.coordinates['y'])
 
         if step_x == 0:
             if step_y > 0:
-                for i in range(int(figure.coordinates['y']) + 1, int(coordinates['y'])):
-                    if self.field[coordinates['x'] + str(i)] is not None:
+                for i in range(int(piece.coordinates['y']) + 1, int(coordinates['y'])):
+                    if chess_board.field[coordinates['x'] + str(i)] is not None:
                         return True
             else:
-                for i in range(int(figure.coordinates['y']) - 1, int(coordinates['y']), -1):
-                    if self.field[coordinates['x'] + str(i)] is not None:
+                for i in range(int(piece.coordinates['y']) - 1, int(coordinates['y']), -1):
+                    if chess_board.field[coordinates['x'] + str(i)] is not None:
                         return True
         else:
             if step_x > 0:
                 for i in range(index_current + 1, index_future):
-                    if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
+                    if chess_board.field[self.field_x[i] + piece.coordinates['y']] is not None:
                         return True
             else:
                 for i in range(index_current - 1, index_future, -1):
-                    if self.field[self.field_x[i] + figure.coordinates['y']] is not None:
+                    if chess_board.field[self.field_x[i] + piece.coordinates['y']] is not None:
                         return True
 
     # Проверяет, есть ли на диагональном пути фигуры
-    def _is_diagonal_overstep(self, figure, coordinates):
-        index = self.field_x.index(figure.coordinates['x'])
+    def _is_diagonal_overstep(self, piece, coordinates, chess_board: 'Field'):
+        index = self.field_x.index(piece.coordinates['x'])
         step_y = self.field_x.index(coordinates['x']) - index
         if step_y > 0:
-            if coordinates['y'] > figure.coordinates['y']:
+            if coordinates['y'] > piece.coordinates['y']:
                 step = 1
-                for i in range(int(figure.coordinates['y']), int(coordinates['y']) - 1):
-                    if self.field[self.field_x[index + step] + str(i + 1)] is not None:
+                for i in range(int(piece.coordinates['y']), int(coordinates['y']) - 1):
+                    if chess_board.field[self.field_x[index + step] + str(i + 1)] is not None:
                         return True
                     step += 1
 
             else:
                 step = 1
-                for i in range(int(figure.coordinates['y']), int(coordinates['y']) + 1, -1):
-                    if self.field[self.field_x[index + step] + str(i - 1)] is not None:
+                for i in range(int(piece.coordinates['y']), int(coordinates['y']) + 1, -1):
+                    if chess_board.field[self.field_x[index + step] + str(i - 1)] is not None:
                         return True
                     step += 1
         else:
-            if coordinates['y'] > figure.coordinates['y']:
+            if coordinates['y'] > piece.coordinates['y']:
                 step = 1
-                for i in range(int(figure.coordinates['y']), int(coordinates['y']) - 1):
-                    if self.field[self.field_x[index - step] + str(i + 1)] is not None:
+                for i in range(int(piece.coordinates['y']), int(coordinates['y']) - 1):
+                    if chess_board.field[self.field_x[index - step] + str(i + 1)] is not None:
                         return True
                     step += 1
             else:
                 step = 1
-                for i in range(int(figure.coordinates['y']), int(coordinates['y']) + 1, -1):
-                    if self.field[self.field_x[index - step] + str(i - 1)] is not None:
+                for i in range(int(piece.coordinates['y']), int(coordinates['y']) + 1, -1):
+                    if chess_board.field[self.field_x[index - step] + str(i - 1)] is not None:
                         return True
                     step += 1
 
     # Взятие пешкой
-    def _is_capture_by_pawn(self, pawn, coordinates):
+    def _is_capture_by_pawn(self, pawn, coordinates, chess_board: 'Field'):
         def _is_capture():
-            if self._is_field_occupied(coordinates):
-                if pawn.is_white():
-                    if int(coordinates['y']) - int(pawn.coordinates['y']) == 1:
-                        return True
-                elif pawn.is_black():
-                    if int(pawn.coordinates['y']) - int(coordinates['y']) == 1:
-                        return True
+            if self._is_field_occupied(coordinates, chess_board):
+                piece_target = chess_board._field[coordinates['x'] + coordinates['y']]
+                if pawn.color != piece_target.color:
+                    if pawn.is_white():
+                        if int(coordinates['y']) - int(pawn.coordinates['y']) == 1:
+                            return True
+                    elif pawn.is_black():
+                        if int(pawn.coordinates['y']) - int(coordinates['y']) == 1:
+                            return True
                 return False
 
         index = pawn.field_x.index(pawn.coordinates['x'])
@@ -278,16 +296,17 @@ class GameRules(Field):
     #             pass
 
     # Взятие фигурами кроме пешки
-    def _is_capture(self, figure, coordinates):
-        figure_target = super()._field[coordinates['x'] + coordinates['y']]
-        if figure.color != figure_target.color:
+    @staticmethod
+    def _is_capture(piece, coordinates, chess_board: 'Field'):
+        piece_target = chess_board._field[coordinates['x'] + coordinates['y']]
+        if piece.color != piece_target.color:
             return True
         else:
             return False
 
 
 # Класс правил хода для фигур
-class FigureRules:
+class PieceRules:
 
     # Проверяет, может ли пешка сделать ход
     @staticmethod
@@ -381,66 +400,35 @@ class FigureRules:
 
 # Класс игрока
 class Player:
-    # Чья очередь ходить
-    __queue = 'White'
-
-    def __init__(self, color, figures):
-        if Figure.check_figure_color(color):
+    def __init__(self, color, pieces):
+        if Piece.check_piece_color(color):
             self.__color = color
-            self._figures = figures
+            self.__pieces = pieces
+            # Чья очередь ходить
+            self.__queue = 'White'
 
     # Двигает фигуру, выбранную игроком
-    def move_figure(self, figure: 'Figure', coordinates):
-        if figure.color == self.__color:
-            if self.__color == self.__queue:
-                if figure.move(coordinates):
-                    self.__set_negative_color()
+    def move_piece(self, piece: 'Piece', coordinates, chess_board: 'Field'):
+        if piece.color == self.__color:
+            if self.__color == chess_board.queue:
+                if piece.move(coordinates):
+                    chess_board.set_negative_color()
+                    print(chess_board.queue)
 
-                    figure.new_move_figure()
-                    figure.get_console_field()
+                    piece.new_move_piece()
+
+                    chess_board.get_console_field()
 
                     return True
         return False
 
     @property
-    def figures(self):
-        return self._figures
-
-    # Ставит противоположный цвет
-    @classmethod
-    def __set_negative_color(cls):
-        if cls.__queue == 'White':
-            cls.__queue = 'Black'
-        else:
-            cls.__queue = 'White'
-
-    # Ставит белый цвет
-    @classmethod
-    def __set_white_color(cls):
-        cls.__queue = 'White'
-
-    # # Ставит фигуры на начальные позиции
-    # def _init_figures(self):
-    #     if self.__color == 'White':
-    #         for key, figure in self._figures.items():
-    #             figure._set_position(figure, figure._start_coordinates)
-    #             figure._revive_figure()
-    #             if isinstance(figure, Pawn):
-    #                 figure._init_pawn()
-    #
-    #     if self.__color == 'Black':
-    #         for key, figure in self._figures.items():
-    #             figure._set_position(figure, figure._start_coordinates)
-    #             figure._revive_figure()
-    #             if isinstance(figure, Pawn):
-    #                 figure._init_pawn()
-    #
-    #     self.__set_white_color()
-    #     super()._moves_count_none()
+    def pieces(self):
+        return self.__pieces
 
 
 # Класс описывающий фигуру
-class Figure(FigureRules, GameRules):
+class Piece(PieceRules, GameRules):
     # coordinates - координаты куда хочет сделать ход фигура
     # self._coordinates - текущие координаты фигуры
 
@@ -449,7 +437,7 @@ class Figure(FigureRules, GameRules):
     def __init__(self, name, coordinates, color):
         super().__init__()
         if super()._check_coordinates(coordinates):
-            if self.check_figure_color(color):
+            if self.check_piece_color(color):
                 self._name = name
                 self._coordinates = coordinates
                 self._color = color
@@ -484,9 +472,9 @@ class Figure(FigureRules, GameRules):
             self._coordinates = None
 
     # Ставит фигуру на заданную позицию
-    def _set_position(self, figure, coordinates):
-        super()._set_none(self._coordinates)
-        super()._set_figure(figure, coordinates)
+    def _set_position(self, piece, coordinates, chess_board: 'Field'):
+        chess_board._set_none(self._coordinates, chess_board)
+        chess_board._set_piece(piece, coordinates, chess_board)
 
         self._coordinates = coordinates
         self._id = self._color + self._name + coordinates['x'] + coordinates['y']
@@ -497,7 +485,7 @@ class Figure(FigureRules, GameRules):
 
     # Проверяет цвет фигуры
     @staticmethod
-    def check_figure_color(color):
+    def check_piece_color(color):
         if color == 'White':
             return True
         elif color == 'Black':
@@ -520,29 +508,30 @@ class Figure(FigureRules, GameRules):
 
     # "Убивает" фигуру
     @staticmethod
-    def __kill_figure(figure: 'Figure'):
-        figure._is_dead = True
+    def __kill_piece(piece: 'Piece'):
+        piece._is_dead = True
 
     # Ест фигуру
-    def _eat_figure(self, coordinates):
-        figure_target = super()._field[coordinates['x'] + coordinates['y']]
-        self.__kill_figure(figure_target)
-        self._set_position(self, coordinates)
+    def _eat_piece(self, coordinates, chess_board: 'Field'):
+        piece_target = chess_board._field[coordinates['x'] + coordinates['y']]
+        self.__kill_piece(piece_target)
+        self._set_position(self, coordinates, chess_board)
 
-    def _revive_figure(self):
+    def _revive_piece(self):
         self._is_dead = False
 
 
 # Класс Пешки
-class Pawn(Figure, Player):
+class Pawn(Piece, Player):
     _name = 'Pawn'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
 
         self.__moves_count = 0
         self._en_passant_move = None
+        self.__chess_board = chess_board
 
     @property
     def moves_count(self):
@@ -556,9 +545,9 @@ class Pawn(Figure, Player):
     def move(self, coordinates):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._pawn_rules(self, coordinates):
-                if not super()._is_field_occupied(coordinates):
-                    if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(self, coordinates)
+                if not super()._is_field_occupied(coordinates, self.__chess_board):
+                    if not super()._is_vertical_overstep(self, coordinates, self.__chess_board):
+                        super()._set_position(self, coordinates, self.__chess_board)
 
                         if self.__moves_count == 0:
                             if coordinates['y'] == '4' or '6':
@@ -566,116 +555,126 @@ class Pawn(Figure, Player):
 
                         self.__moves_count += 1
                         return True
-            elif super()._is_capture_by_pawn(self, coordinates):
-                super()._eat_figure(coordinates)
+            elif super()._is_capture_by_pawn(self, coordinates, self.__chess_board):
+                super()._eat_piece(coordinates, self.__chess_board)
 
                 self.__moves_count += 1
                 return True
 
 
 # Класс Ладьи
-class Rook(Figure):
+class Rook(Piece):
     _name = 'Rook'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
+
+        self.__chess_board = chess_board
 
     # Ставим ладью на заданную позицию, с проверками
     def move(self, coordinates):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._rook_rules(self, coordinates):
-                if not super()._is_field_occupied(coordinates):
-                    if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(self, coordinates)
+                if not super()._is_field_occupied(coordinates, self.__chess_board):
+                    if not super()._is_vertical_overstep(self, coordinates, self.__chess_board):
+                        super()._set_position(self, coordinates, self.__chess_board)
                         return True
                 else:
-                    if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                        if super()._is_capture(self, coordinates):
-                            super()._eat_figure(coordinates)
+                    if not super()._is_vertical_overstep(self, coordinates, self.__chess_board):
+                        if super()._is_capture(self, coordinates, self.__chess_board):
+                            super()._eat_piece(coordinates, self.__chess_board)
                             return True
 
 
 # Класс Коня
-class Knight(Figure):
+class Knight(Piece):
     _name = 'Knight'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
+
+        self.__chess_board = chess_board
 
     def move(self, coordinates):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._knight_rules(self, coordinates):
-                if not super()._is_field_occupied(coordinates):
-                    super()._set_position(self, coordinates)
+                if not super()._is_field_occupied(coordinates, self.__chess_board):
+                    super()._set_position(self, coordinates, self.__chess_board)
                     return True
                 else:
-                    if super()._is_capture(self, coordinates):
-                        super()._eat_figure(coordinates)
+                    if super()._is_capture(self, coordinates, self.__chess_board):
+                        super()._eat_piece(coordinates, self.__chess_board)
                         return True
 
 
 # Класс Слона
-class Bishop(Figure):
+class Bishop(Piece):
     _name = 'Bishop'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
+
+        self.__chess_board = chess_board
 
     def move(self, coordinates):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._bishop_rules(self, coordinates):
-                if not super()._is_field_occupied(coordinates):
-                    if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(self, coordinates)
+                if not super()._is_field_occupied(coordinates, self.__chess_board):
+                    if not super()._is_diagonal_overstep(self, coordinates, self.__chess_board):
+                        super()._set_position(self, coordinates, self.__chess_board)
                         return True
                 else:
-                    if not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        if super()._is_capture(self, coordinates):
-                            super()._eat_figure(coordinates)
+                    if not super()._is_diagonal_overstep(self, coordinates, self.__chess_board):
+                        if super()._is_capture(self, coordinates, self.__chess_board):
+                            super()._eat_piece(coordinates, self.__chess_board)
                             return True
 
 
 # Класс Королевы
-class Queen(Figure):
+class Queen(Piece):
     _name = 'Queen'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
+
+        self.__chess_board = chess_board
 
     def move(self, coordinates):
         if super()._check_coordinates(coordinates) and not self._is_dead:
             if super()._queen_rules(self, coordinates):
-                if not super()._is_field_occupied(coordinates):
+                if not super()._is_field_occupied(coordinates, self.__chess_board):
                     if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
-                        if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                            super()._set_position(self, coordinates)
+                        if not super()._is_vertical_overstep(self, coordinates, self.__chess_board):
+                            super()._set_position(self, coordinates, self.__chess_board)
                             return True
-                    elif not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        super()._set_position(self, coordinates)
+                    elif not super()._is_diagonal_overstep(self, coordinates, self.__chess_board):
+                        super()._set_position(self, coordinates, self.__chess_board)
                         return True
                 else:
                     if self.coordinates['x'] == coordinates['x'] or self.coordinates['y'] == coordinates['y']:
-                        if not super()._is_vertical_overstep(figure=self, coordinates=coordinates):
-                            if super()._is_capture(self, coordinates):
-                                super()._eat_figure(coordinates)
+                        if not super()._is_vertical_overstep(self, coordinates, self.__chess_board):
+                            if super()._is_capture(self, coordinates, self.__chess_board):
+                                super()._eat_piece(coordinates, self.__chess_board)
                                 return True
-                    elif not super()._is_diagonal_overstep(figure=self, coordinates=coordinates):
-                        if super()._is_capture(self, coordinates):
-                            super()._eat_figure(coordinates)
+                    elif not super()._is_diagonal_overstep(self, coordinates, self.__chess_board):
+                        if super()._is_capture(self, coordinates, self.__chess_board):
+                            super()._eat_piece(coordinates, self.__chess_board)
                             return True
 
 
 # Класс Короля
-class King(Figure):
+class King(Piece):
     _name = 'King'
 
-    def __init__(self, coordinates, color):
+    def __init__(self, coordinates, color, chess_board):
         super().__init__(self._name, coordinates, color)
-        super()._create_figure(self, coordinates)
+        super()._create_piece(self, coordinates, chess_board)
+
+        self.chess_board = chess_board
 
     def move(self, coordinates):
         pass

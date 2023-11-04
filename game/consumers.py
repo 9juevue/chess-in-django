@@ -5,18 +5,17 @@ from asgiref.sync import async_to_sync
 
 from game.models import Field
 
-field = Field('1ds4gds7hj42')
-field.init_game()
-
 
 class ChessConsumer(WebsocketConsumer):
-
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
+        self.fields = {}
+        self.field = None
         self.room_group_name = None
+        self.game_id = None
 
     def connect(self):
-        self.room_group_name = 'test'
+        self.room_group_name = self.scope['url_route']['kwargs']['room_name']
 
         async_to_sync(self.channel_layer.group_add)(
             self.room_group_name,
@@ -25,19 +24,21 @@ class ChessConsumer(WebsocketConsumer):
 
         self.accept()
 
-        self.send(text_data=json.dumps({
-            'type': 'init_current_field',
-            'field': field.get_field_text()
-        }))
+        # self.send(text_data=json.dumps({
+        #     'type': 'init_current_field',
+        #     'field': self.field.get_field_text()
+        # }))
 
     def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
         if 'type' in text_data_json:
             if text_data_json['type'] == 'init_game':
-                pass
+                self.field = Field(text_data_json['id'])
+                self.field.init_game(self.field)
+                self.game_id = text_data_json['id']
 
             if text_data_json['type'] == 'figure_move':
-                self.figure_move(text_data_json, field.players['white_player'], field.players['black_player'])
+                self.figure_move(text_data_json, self.field.players['white_player'], self.field.players['black_player'])
 
             if text_data_json['type'] == 'message':
                 self.chat_message(text_data_json)
@@ -50,19 +51,23 @@ class ChessConsumer(WebsocketConsumer):
             'message': message
         }))
 
-    def figure_none_event(self, event):
-        status = event['status']
+    def chat_message(self, text_data_json):
+        message = text_data_json['message']
 
-        self.send(text_data=json.dumps({
-            'type': 'figure_move',
-            'status': status
-        }))
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'chat_message_event',
+                'message': message
+            }
+        )
 
     def figure_move_event(self, event):
         status = event['status']
 
         self.send(text_data=json.dumps({
             'type': 'figure_move',
+            'game_id': self.game_id,
             'status': status,
             'coordinates_old': event['coordinates_old'],
             'coordinates_new': event['coordinates_new'],
@@ -70,12 +75,12 @@ class ChessConsumer(WebsocketConsumer):
             'original_position_left': event['original_position_left'],
             'original_position_top': event['original_position_top'],
         }))
-
+        
     def figure_move(self, text_data_json, white_player, black_player):
-        figure = (field.get_figure(text_data_json['coordinates_old']))
+        piece = (self.field.get_piece(text_data_json['coordinates_old'], self.field))
         status = None
 
-        if figure is None:
+        if piece is None:
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {
@@ -84,14 +89,14 @@ class ChessConsumer(WebsocketConsumer):
                 }
             )
         else:
-            if figure.is_white():
-                status = white_player.move_figure(figure,
-                                                  {'x': str(text_data_json['coordinates_new'][0]),
-                                                   'y': str(text_data_json['coordinates_new'][1])})
-            elif figure.is_black():
-                status = black_player.move_figure(figure,
-                                                  {'x': str(text_data_json['coordinates_new'][0]),
-                                                   'y': str(text_data_json['coordinates_new'][1])})
+            if piece.is_white():
+                status = white_player.move_piece(piece,
+                                                 {'x': str(text_data_json['coordinates_new'][0]),
+                                                  'y': str(text_data_json['coordinates_new'][1])}, self.field)
+            elif piece.is_black():
+                status = black_player.move_piece(piece,
+                                                 {'x': str(text_data_json['coordinates_new'][0]),
+                                                  'y': str(text_data_json['coordinates_new'][1])}, self.field)
 
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
@@ -106,13 +111,12 @@ class ChessConsumer(WebsocketConsumer):
                 }
             )
 
-    def chat_message(self, text_data_json):
-        message = text_data_json['message']
+    def figure_none_event(self, event):
+        status = event['status']
 
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name,
-            {
-                'type': 'chat_message_event',
-                'message': message
-            }
-        )
+        self.send(text_data=json.dumps({
+            'type': 'figure_move',
+            'status': status
+        }))
+
+
