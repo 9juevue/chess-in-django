@@ -1,4 +1,6 @@
 import json
+import pickle
+import os.path
 
 from channels.generic.websocket import WebsocketConsumer
 from asgiref.sync import async_to_sync
@@ -24,21 +26,41 @@ class ChessConsumer(WebsocketConsumer):
 
         self.accept()
 
-        # self.send(text_data=json.dumps({
-        #     'type': 'init_current_field',
-        #     'field': self.field.get_field_text()
-        # }))
-
     def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
         if 'type' in text_data_json:
             if text_data_json['type'] == 'init_game':
-                self.field = Field(text_data_json['id'])
-                self.field.init_game(self.field)
                 self.game_id = text_data_json['id']
 
+                if os.path.exists('game/chess_boards/' + self.game_id + '.pkl'):
+                    with open('game/chess_boards/' + self.game_id + '.pkl', 'rb') as pickle_in:
+                        unpickled_list = pickle.load(pickle_in)
+
+                    self.field = unpickled_list
+
+                    self.send(text_data=json.dumps({
+                        'type': 'init_current_field',
+                        'field': self.field.get_field_text()
+                    }))
+                else:
+                    self.field = Field(self.game_id)
+                    self.field.init_game(self.field)
+
+                    with open('game/chess_boards/' + self.game_id + '.pkl', 'wb') as pickle_out:
+                        pickle.dump(self.field, pickle_out)
+
+                self.field.get_console_field()
+
             if text_data_json['type'] == 'figure_move':
+                with open('game/chess_boards/' + self.game_id + '.pkl', 'rb') as pickle_in:
+                    unpickled_list = pickle.load(pickle_in)
+
+                self.field = unpickled_list
+
                 self.figure_move(text_data_json, self.field.players['white_player'], self.field.players['black_player'])
+
+                with open('game/chess_boards/' + self.game_id + '.pkl', 'wb') as pickle_out:
+                    pickle.dump(self.field, pickle_out)
 
             if text_data_json['type'] == 'message':
                 self.chat_message(text_data_json)

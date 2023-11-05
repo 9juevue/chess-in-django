@@ -25,25 +25,44 @@ $(document).ready(function () {
             messages.insertAdjacentHTML('beforeend', `<div><p>${data.message}</p></div>`)
         }
 
-        // if (data.type === 'init_current_field') {
-        //     let coordinates,
-        //         color,
-        //         name,
-        //         start_coordinates,
-        //         figureId;
-        //     Object.entries(data.field).forEach(
-        //         (key, value) => {
-        //             if (key[1] != null) {
-        //                 coordinates = key[0];
-        //                 color = key[1]['color'];
-        //                 name = key[1]['name'];
-        //                 start_coordinates = key[1]['start_coordinates']
-        //                 figureId = start_coordinates + name[0];
-        //                 $('#' + figureId).appendTo($('#' + coordinates));
-        //             }
-        //         }
-        //     )
-        // }
+        if (data.type === 'init_current_field') {
+            let coordinates,
+                color,
+                name,
+                start_coordinates,
+                figureId,
+                pieceName;
+            Object.entries(data.field).forEach(
+                (key, value) => {
+                    if (key[1] != null) {
+                        coordinates = key[0];
+                        color = key[1]['color'];
+                        name = key[1]['name'];
+                        start_coordinates = key[1]['start_coordinates'];
+                        pieceName = name[0];
+
+                        if (name === 'Knight') {
+                            pieceName = 'N';
+                        }
+
+                        figureId = start_coordinates + pieceName;
+
+                        if ($('#' + coordinates).children().attr('id') !== coordinates + pieceName) {
+                            $('#' + coordinates).children().remove();
+                        }
+
+                        $('#' + figureId).attr('id', coordinates + pieceName).appendTo($('#' + coordinates));
+                    }
+                }
+            )
+            Object.entries(data.field).forEach(
+                (key, value) => {
+                    if (key[1] == null) {
+                        $('#' + key[0]).empty()
+                    }
+                }
+            )
+        }
 
         if (data.type === 'figure_move') {
             let figure = $('#' + data['figure_id']);
